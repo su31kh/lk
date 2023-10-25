@@ -13,3 +13,4 @@ blk.bin
 *.dSYM
 scripts/toolpaths.local
 .clangd
+.vscode
