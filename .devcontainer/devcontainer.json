@@ -1,0 +1,11 @@
+{
+    "build": { "dockerfile": "Dockerfile"},
+    "customizations": {
+      "vscode": {
+        "extensions": [
+			    "ms-vscode.cpptools"
+		    ]
+      }
+    },
+    "postCreateCommand": "sudo apt update && sudo apt install "
+  }
