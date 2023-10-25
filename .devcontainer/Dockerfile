@@ -26,9 +26,6 @@ RUN sudo apt-get install --no-install-recommends -y \
   xxd \
   strace \
   man \
-  gcc-aarch64-linux-gnu install \
-  g++-aarch64-linux-gnu install \
-  qemu-system-aarch64
 
 # terminal colors with xterm
 ENV TERM xterm
