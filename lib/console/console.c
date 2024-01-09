@@ -257,6 +257,60 @@ static const console_cmd *match_command(const char *command, const uint8_t avail
     return NULL;
 }
 
+// Global variables
+#define MAX_STRINGS 10                      // max no of allowed custom threads
+char strings[MAX_STRINGS][20];              // keep track or multiple created custom strings
+int thread_no = 0;                          // total no of alive custom threads
+int thread_head = 0;                        // total no of dead custom threads
+thread_t *mockThread[MAX_STRINGS] = {NULL}; // Declare an array of thread_t pointers
+
+/**
+ * @brief This is a mock function that prints numbers from 0 to 9999 and then sleeps for 5 seconds.
+ *
+ * The function will keep repeating these two actions indefinitely.
+ *
+ * @note This is a mock function for demonstration purposes and should be replaced with the actual
+ *       implementation as needed.
+ *
+ * @warning This function may cause an infinite loop and should be used with caution.
+ */
+static int mockThread_entry(void *args) {
+    for (int i = 0; i < 10000; ++i) {
+        thread_sleep(5000);
+        for (int j = 0; j < 10000; ++j) {
+            printf("looped for %d\n", j);
+        }
+    }
+    printf("killed the thread\n");
+    return 0;
+}
+
+/**
+ * @brief Create and start the mockThread
+ */
+void startMockThread(const char *thread_name) {
+    printf("%s created\n", thread_name);
+    strcpy(strings[thread_no], thread_name);
+
+    mockThread[thread_no] = thread_create(thread_name, mockThread_entry, NULL, DEFAULT_PRIORITY, DEFAULT_STACK_SIZE);
+    if (mockThread[thread_no] != NULL) {
+        thread_resume(mockThread[thread_no]);
+    } else {
+        printf("Failed to create mockThread thread\n");
+    }
+    thread_no++;
+}
+
+/**
+ * @brief Print all the threads with their state
+ */
+void dump_threads_names(void) {
+    for (int i = 0; i < MAX_STRINGS; ++i) {
+        if (strings[i][0] != '\0') {
+            printf("%d: %s\n", i, strings[i]);
+        }
+    }
+}
 static int read_debug_line(const char **outbuffer, void *cookie) {
     int pos = 0;
     int escape_level = 0;
@@ -289,6 +343,17 @@ static int read_debug_line(const char **outbuffer, void *cookie) {
                         pos--;
                         fputs("\b \b", stdout); // wipe out a character
                     }
+                    break;
+                case 0x3: // case for listening Ctrl+C and terminating the thread
+
+                    printf("Ctrl C pressed !\n");
+                    if (!mockThread[thread_head])
+                        break;
+                    strcat(strings[thread_head], " ~|DEAD|~");  // update thread state in List
+                    thread_kill(mockThread[thread_head]);       // terminate the mockThread
+                    printf("thread_kill initiated for: %s\n", mockThread[thread_head]->name);
+                    thread_head++;
+
                     break;
 
                 case 0x1b: // escape
@@ -627,6 +692,19 @@ static status_t command_loop(console_t *con, int (*get_line)(const char **, void
 
         /* try to match the command */
         const console_cmd *command = match_command(args[0].str, CMD_AVAIL_NORMAL);
+
+        // Create mockThread on using "Start (name)"
+        if (strcmp(args[0].str, "Start") == 0) {
+            if (args[1].str)
+                startMockThread(args[1].str);
+            else
+                startMockThread("mockThread");
+        }
+        // Print all the threads with their state using "List"
+        if (strcmp(args[0].str, "List") == 0) {
+            dump_threads_names();
+        }
+
         if (!command) {
             if (showprompt)
                 printf("command not found\n");
