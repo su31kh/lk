@@ -763,8 +763,30 @@ void thread_sleep(lk_time_t delay) {
     THREAD_LOCK(state);
     timer_set_oneshot(&timer, delay, thread_sleep_handler, (void *)current_thread);
     current_thread->state = THREAD_SLEEPING;
-    thread_resched();
+    thread_resched();                   //
     THREAD_UNLOCK(state);
+}
+
+void thread_kill(thread_t *current_thread) {
+    lk_time_t delay = 99999;
+    timer_t timer;
+
+    DEBUG_ASSERT(current_thread->magic == THREAD_MAGIC);
+    // DEBUG_ASSERT(current_thread->state == THREAD_RUNNING);
+    DEBUG_ASSERT(!thread_is_idle(current_thread));
+
+    timer_initialize(&timer);
+
+    THREAD_LOCK(state);
+    timer_set_oneshot(&timer, delay, thread_sleep_handler, (void *)current_thread);
+    current_thread->state = THREAD_SLEEPING;
+
+    uint cpu = arch_curr_cpu_num();
+    THREAD_STATS_INC(reschedules);
+    thread_t *newthread = get_top_thread(cpu);
+
+    THREAD_UNLOCK(state);
+    list_delete(&current_thread->thread_list_node);
 }
 
 /**
