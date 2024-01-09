@@ -154,6 +154,7 @@ typedef struct thread {
 #endif
 
 /* functions */
+void thread_kill(thread_t *current_thread);
 void thread_init_early(void);
 void thread_init(void);
 void thread_become_idle(void) __NO_RETURN;
